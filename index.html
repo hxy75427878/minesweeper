@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minesweeper</title>
-    <link rel="stylesheet" href="Minesweeper.css">
+    <link rel="shortcut icon" href="" type="image/x-icon">
+    <link rel="stylesheet" href="css/index.css">
 </head>
 
 <body>
@@ -27,8 +28,14 @@
         <div class="grid" id="id-grid"></div>
         <!-- <div class="grid" id="id-grid-log"></div> -->
     </div>
-    <script src="utils.js"></script>
-    <script src="Minesweeper.js"></script>
+    <div class="leaderboard">
+        <h2>排行榜</h2>
+        <ul id="leaderboard-list">
+            <!-- 动态生成排行榜项 -->
+        </ul>
+    </div>
+    <script src="js/utils.js"></script>
+    <script src="js/index.js"></script>
 </body>
 
 </html>

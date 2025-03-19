@@ -12,6 +12,8 @@ class Minesweeper {
         this.timerInterval = null //计时器
         this.flaggedPositions = [] //旗帜的位置
         this.open = 0 //翻开数
+        this.leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [] //排行榜
+        this.difficulty = 'easy' //难度
     }
 
     //初始化游戏
@@ -25,12 +27,13 @@ class Minesweeper {
         this.flaggedPositions = []
         this.open = 0
         clearInterval(this.timerInterval)
+        this.renderLeaderboard()
         this.render()
     }
 
     //渲染游戏
     render() {
-        this.renderCell('#id-grid')
+        this.renderCells('#id-grid')
         this.recordFlagPositions()
         this.renderMineCounter()
         this.renderTimer()
@@ -93,15 +96,15 @@ class Minesweeper {
     }
 
     // 在指定选择器中渲染游戏
-    renderCell(selector) {
+    renderCells(selector) {
         let grid = e(selector)
         grid.style.gridTemplateColumns = `repeat(${this.cols}, 30px)`
         grid.style.gridTemplateRows = `repeat(${this.rows}, 30px)`
         grid.innerHTML = ''
         let cellHtml = ''
+        // 生成格子
         for (let i = 0; i < this.rows; i++) {
             for (let j = 0; j < this.cols; j++) {
-                // let cell = c
                 let cell = `
                     <div class="cell number-${this.boards[i][j].value} " data-row="${i}" data-col="${j}">
                     </div>
@@ -109,6 +112,7 @@ class Minesweeper {
                 cellHtml += cell
             }
         }
+        // 渲染格子
         appendHtml(grid, cellHtml)
     }
 
@@ -120,27 +124,11 @@ class Minesweeper {
         mineCounter.textContent = mineStr.padStart(2, '0')
     }
 
-    // 显示自定义胜利弹窗
-    showCustomWinDialog() {
-        let dialog = `
-            <div class="win-dialog">
-                <div class="win-box">
-                    <h2>🏆 胜利！</h2>
-                    <p>用时：${this.formatTime((this.endTime - this.startTime) / 1000)}</p>
-                    <button class="dialog-confirm">确定</button>
-                    <button class="dialog-restart">再来一局</button>
-                </div>
-            </div>
-        `
-        appendHtml(document.body, dialog)
-    }
-
-
     // 格式化时间
     formatTime(time) {
         let minutes = Math.floor(time / 60)
         let seconds = time % 60
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`
+        return `${minutes.toString()}:${seconds.toString().padStart(2, '0')}`
     }
 
     // 开始计时
@@ -181,20 +169,22 @@ class Minesweeper {
         return isOpen || isGameOver || isFlag || isQuestion
     }
 
-    // 点击0格子时递归处理0格子的逻辑
-    handleZeroCell(i, j) {
+    // 处理点击0格子时递归处理0格子的逻辑
+    handleZeroCell(cell, i, j) {
         for (let x = -1; x <= 1; x++) {
             for (let y = -1; y <= 1; y++) {
                 if (x !== 0 || y !== 0) {
-                    this.handleOpenCell(i + x, j + y)
+                    if (!this.isOpenCell(i + x, j + y)) {
+                        this.handleOpenCell(i + x, j + y)
+                    }
                 }
             }
         }
     }
 
     // 处理点击到雷时的逻辑
-    handleMineCell(i, j) {
-        let cell = e(`.cell[data-row="${i}"][data-col="${j}"]`)
+    handleMineCell(cell, i, j) {
+        // let cell = e(`.cell[data-row="${i}"][data-col="${j}"]`)
         let mines = es('.number-9')
         cell.classList.add('mine')
         mines.forEach(mine => {
@@ -205,6 +195,14 @@ class Minesweeper {
         })
         clearInterval(this.timerInterval)
         this.gameOver = true
+        this.showCustomDialog()
+    }
+
+    // 处理点击安全格子时的逻辑
+    handleSafeCell(cell, i, j) {
+        // let cell = e(`.cell[data-row="${i}"][data-col="${j}"]`)
+        cell.classList.add('revealed')
+        cell.textContent = this.boards[i][j].value
     }
 
     // 初始化安全的棋盘
@@ -224,12 +222,14 @@ class Minesweeper {
         this.startTimer()
     }
 
-    // 处理点击格子的逻辑
+    // 处理点击所有格子时的逻辑
     handleClickCell(cell, i, j) {
         let board = this.boards[i][j]
-        cell.classList.add('revealed')
-        board.open = true
-        this.open += 1
+        if (!board.open) {
+            cell.classList.add('revealed')
+            board.open = true
+            this.open += 1
+        }
     }
 
     // 处理翻开所有格子的逻辑
@@ -246,27 +246,30 @@ class Minesweeper {
         // 用表驱动法优化if else
         let board = this.boards[i][j]
         let actions = {
-            9: () => { this.handleMineCell(i, j) },
-            0: () => { this.handleZeroCell(i, j) },
-            default: () => { cell.textContent = board.value }
+            9: () => { this.handleMineCell(cell, i, j) },
+            0: () => { this.handleZeroCell(cell, i, j) },
+            default: () => { this.handleSafeCell(cell, i, j) }
         }
         let action = actions[board.value] || actions.default
         action()
     }
 
-    // 处理是否翻开格子的逻辑
+    // 处理翻开格子的逻辑
     handleOpenCell(i, j) {
-        if (this.isOpenCell(i, j)) {
-            return
-        }
+        // 判断是否是第一次点击
         if (this.firstClick) {
             this.handleFirstClick(i, j)
         }
+        if (this.gameOver || this.boards[i][j].flag) {
+            return
+        }
         let cell = e(`.cell[data-row="${i}"][data-col="${j}"]`)
+        // 处理点击格子的逻辑
         this.handleClickCell(cell, i, j)
+        // 处理点击不同格子时的逻辑
         this.handleDifferentCell(cell, i, j)
-        if (this.isWin()) {
-            this.win()
+        if (this.isWin() && !this.gameOver) {
+            this.win() // 此方法会触发 showCustomDialog 弹窗
         }
     }
 
@@ -375,13 +378,14 @@ class Minesweeper {
         if (!this.gameOver && !board.open) {
             this.handleFlagCell(cell, i, j)
         }
-        if (board.open && board.value > 0) {
+        if (board.open && board.value > 0 && !this.gameOver) {
+            this.addAnimation(i, j)
             let flaggedCount = this.countFlagsAround(i, j)
             if (flaggedCount === board.value) {
                 this.openNoFlagCell(i, j)
             }
-            this.addAnimation(i, j)
         }
+
     }
 
 
@@ -402,7 +406,41 @@ class Minesweeper {
                 mine.classList.add('flagged')
             }
         })
-        this.showCustomWinDialog()
+        this.showCustomDialog()
+    }
+
+
+    // 更新排行榜
+    updateLeaderboard(time, difficulty, name) {
+        const entry = { time, difficulty, name } // 包含姓名
+        this.leaderboard.push(entry)
+        // 先按难度排序，再按用时排序
+        this.leaderboard.sort((a, b) => {
+            const difficultyOrder = { 'easy': 1, 'medium': 2, 'hard': 3 }
+            if (difficultyOrder[a.difficulty] === difficultyOrder[b.difficulty]) {
+                return a.time - b.time;
+            } else {
+                return difficultyOrder[b.difficulty] - difficultyOrder[a.difficulty]
+            }
+        })
+        this.leaderboard = this.leaderboard.slice(0, 5) // 只保留前5名
+        localStorage.setItem('leaderboard', JSON.stringify(this.leaderboard))
+        this.renderLeaderboard()
+    }
+
+    // 渲染排行榜
+    renderLeaderboard() {
+        const leaderboardList = e('#leaderboard-list')
+        let players = this.leaderboard.map((item, index) => {
+            return `<li>
+                <span>${index + 1}</span>
+                <span>${item.name}</span> 
+                <span>${this.formatTime(item.time)}</span>
+                <span>${item.difficulty}</span>
+            </li>`
+        }
+        )
+        leaderboardList.innerHTML = players.join('')
     }
 
     // 绑定左键点击事件
@@ -443,6 +481,7 @@ class Minesweeper {
             // 添加当前难度按钮的active类
             button.classList.add('active')
             let difficulty = button.dataset.difficulty
+            this.difficulty = difficulty
             this.handleDifficulty(difficulty)
         })
     }
@@ -454,20 +493,62 @@ class Minesweeper {
             this.init()
         })
     }
+    // 获取经过时间
+    getTimer() {
+        let time = Math.floor((this.endTime - this.startTime) / 1000)
+        if (time < 0) {
+            time = 0
+        }
+        return time
+    }
+    // 显示自定义弹窗
+    showCustomDialog() {
+        let time = this.getTimer();
+        let input = this.isWin() ?
+            `<input type="text" id="player-name" placeholder="请输入你的名字">` : ''
+        let context = this.isWin() ?
+            `恭喜你，你赢了🎉` :
+            `你输了🎌`
+        let dialog = `
+            <div class= "win-dialog">
+                <div class="win-box">
+                    <h2>${context}</h2>
+                    ${input}
+                    <p>用时：${this.formatTime(time)}</p>
+                    <p>难度：${this.difficulty}</p>
+                    <button class="dialog-confirm">确定</button>
+                    <button class="dialog-restart">再来一局</button>
+                </div>
+            </div >
+            `
+        appendHtml(document.body, dialog);
+    }
 
-    // 绑定事件隐藏自定义胜利弹窗
-    bindEventHideCustomWinDialog() {
+
+    handleClickDialogButton() {
+        if (this.isWin()) {
+            let input = document.querySelector('#player-name')
+            let name = input.value.trim() || '匿名玩家'
+            let time = this.getTimer()
+            let difficulty = this.difficulty
+            this.updateLeaderboard(time, difficulty, name)
+        }
+        let dialog = document.querySelector('.win-dialog')
+        dialog.remove()
+    }
+
+
+    // 绑定点击自定义弹窗按钮的事件
+    bindEventCustomDialog() {
         let body = document.querySelector('body')
         bindEvent(body, 'click', (event) => {
             let self = event.target
             if (self.classList.contains('dialog-confirm')) {
-                let dialog = document.querySelector('.win-dialog')
-                dialog.remove()
+                this.handleClickDialogButton()
             }
             if (self.classList.contains('dialog-restart')) {
-                let dialog = document.querySelector('.win-dialog')
+                this.handleClickDialogButton()
                 this.init()
-                dialog.remove()
             }
         })
     }
@@ -479,7 +560,7 @@ class Minesweeper {
         this.bindEventRightClick()
         this.bindEventNewGame()
         this.bindEventDifficulty()
-        this.bindEventHideCustomWinDialog()
+        this.bindEventCustomDialog()
     }
 }
 
@@ -487,7 +568,6 @@ const __main__ = () => {
     const game = new Minesweeper()
     game.init()
     game.bindEvents()
-
 }
 
 __main__()

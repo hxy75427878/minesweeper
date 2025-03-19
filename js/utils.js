@@ -236,12 +236,9 @@ const deepClone = (value) => {
 const shuffle = (array) => {
     for (let i = array.length - 1; i >= 0; i--) {
         let random = Math.floor(Math.random() * i);
-        // let n = array[random]
-        // array[random] = array[i]
-        // array[i] = n
         [array[random], array[i]] = [array[i], array[random]]
     }
-
+    
     return array
 }
 

@@ -101,6 +101,7 @@ body {
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
     /* animation: plant-flag 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); */
 }
+
 /* 
 @keyframes plant-flag {
     0% {
@@ -197,6 +198,20 @@ button:hover {
     color: #5ac8fa;
 }
 
+@keyframes bounce {
+    0% {
+        transform: scale(0);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
 /* 胜利弹窗 */
 .win-dialog {
     position: fixed;
@@ -204,7 +219,7 @@ button:hover {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -215,8 +230,86 @@ button:hover {
     padding: 20px;
     border-radius: 10px;
     text-align: center;
+    animation: bounce 0.5s ease-in-out;
 }
+
 .win-box button {
     margin: 10px 5px;
     padding: 8px 20px;
+}
+
+/* 排行榜容器 */
+.leaderboard {
+    margin-left: 2rem;
+
+    /* 与游戏主界面间距 */
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e6ed;
+    width: 350px;
+    /* 固定宽度 */
+}
+
+/* 排行榜标题 */
+.leaderboard h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+/* 排行榜列表 */
+.leaderboard ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* 排行榜项 */
+.leaderboard li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: #f8f9fc;
+    border-radius: 8px;
+    border: 1px solid #e0e6ed;
+    font-size: 0.9rem;
+    color: #4a5568;
+}
+
+.leaderboard li span {
+    flex: 1;
+    text-align: center;
+}
+
+/* 排名序号 */
+.leaderboard li span:first-child {
+    font-weight: 600;
+    color: #4a90e2;
+}
+
+/* 用时 */
+.leaderboard li span:last-child {
+    font-family: 'Courier New', monospace;
+    color: #666;
+}
+
+#player-name {
+    padding: 8px 12px;
+    border: 1px solid #e0e6ed;
+    border-radius: 6px;
+    margin: 10px 0;
+    width: 80%;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+#player-name:focus {
+    border-color: #4a90e2;
 }
